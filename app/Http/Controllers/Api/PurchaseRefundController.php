@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StorePurchaseRefundRequest;
+use App\Http\Requests\StoreRefundRequest;
 use App\Http\Resources\PurchaseRefundResource;
 use App\Models\Batch;
 use App\Services\BatchService;
@@ -12,7 +12,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class PurchaseRefundController extends Controller
 {
-    public function store(StorePurchaseRefundRequest $request, Batch $batch, BatchService $batches): JsonResponse
+    public function store(StoreRefundRequest $request, Batch $batch, BatchService $batches): JsonResponse
     {
         $refunds = $batches->refund($batch, $request->validated());
 
