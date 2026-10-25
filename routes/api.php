@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AvailableProductController;
 use App\Http\Controllers\Api\BatchController;
+use App\Http\Controllers\Api\BatchProfitController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\OrderRefundController;
 use App\Http\Controllers\Api\PurchaseRefundController;
@@ -16,3 +17,5 @@ Route::get('/reports/stock', [StockReportController::class, 'index'])->name('api
 
 Route::post('/orders', [OrderController::class, 'store'])->name('api.orders.store');
 Route::post('/orders/{order}/refunds', [OrderRefundController::class, 'store'])->name('api.orders.refunds.store');
+
+Route::get('/reports/batch-profit', [BatchProfitController::class, 'index'])->name('api.reports.batch-profit');
