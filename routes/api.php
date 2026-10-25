@@ -1,8 +1,13 @@
 <?php
 
+use App\Http\Controllers\Api\AvailableProductController;
 use App\Http\Controllers\Api\BatchController;
 use App\Http\Controllers\Api\PurchaseRefundController;
+use App\Http\Controllers\Api\StockReportController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/batches', [BatchController::class, 'store'])->name('api.batches.store');
 Route::post('/batches/{batch}/refunds', [PurchaseRefundController::class, 'store'])->name('api.batches.refunds.store');
+
+Route::get('/products/available', [AvailableProductController::class, 'index'])->name('api.products.available');
+Route::get('/reports/stock', [StockReportController::class, 'index'])->name('api.reports.stock');

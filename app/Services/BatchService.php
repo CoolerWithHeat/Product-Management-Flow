@@ -5,16 +5,16 @@ namespace App\Services;
 use App\Models\Batch;
 use App\Models\BatchItem;
 use App\Models\Category;
-use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\PurchaseRefund;
-use App\Models\SaleRefund;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class BatchService
 {
+    public function __construct(private StockService $stock) {}
+
     /**
      * @param  array{provider_id: int, storage_id: int, products: array<int, array{id: int, qty: int, unit_cost: int|float|string}>}  $data
      */
@@ -45,7 +45,6 @@ class BatchService
                 'purchased_at' => now(),
             ]);
 
-
             foreach ($data['products'] as $line) {
                 $batch->items()->create([
                     'product_id' => $line['id'],
@@ -67,7 +66,7 @@ class BatchService
         return DB::transaction(function () use ($batch, $data): Collection {
             $batch = Batch::query()->whereKey($batch->id)->lockForUpdate()->firstOrFail();
             $items = $batch->items()->orderBy('id')->lockForUpdate()->get();
-            $available = $this->availableQuantities($items);
+            $available = $this->stock->availableQuantities($items);
             $itemsByProduct = $items->keyBy('product_id');
 
             if ($data['full'] ?? false) {
@@ -137,42 +136,5 @@ class BatchService
         }
 
         return $category->provider_id;
-    }
-
-    /**
-     * Caller must hold batch-item locks so other stock writers cannot change these balances.
-     *
-     * @param  Collection<int, BatchItem>  $items
-     * @return array<int, int>
-     */
-    private function availableQuantities(Collection $items): array
-    {
-        $ids = $items->modelKeys();
-
-        $sold = OrderItem::query()
-            ->whereIn('batch_item_id', $ids)
-            ->selectRaw('batch_item_id, SUM(quantity) AS total')
-            ->groupBy('batch_item_id')
-            ->pluck('total', 'batch_item_id');
-
-        $clientRefunds = SaleRefund::query()
-            ->join('order_items', 'order_items.id', '=', 'sale_refunds.order_item_id')
-            ->whereIn('order_items.batch_item_id', $ids)
-            ->selectRaw('order_items.batch_item_id, SUM(sale_refunds.quantity) AS total')
-            ->groupBy('order_items.batch_item_id')
-            ->pluck('total', 'order_items.batch_item_id');
-
-        $supplierRefunds = PurchaseRefund::query()
-            ->whereIn('batch_item_id', $ids)
-            ->selectRaw('batch_item_id, SUM(quantity) AS total')
-            ->groupBy('batch_item_id')
-            ->pluck('total', 'batch_item_id');
-
-        return $items->mapWithKeys(fn (BatchItem $item): array => [
-            $item->id => $item->quantity
-                - (int) ($sold[$item->id] ?? 0)
-                + (int) ($clientRefunds[$item->id] ?? 0)
-                - (int) ($supplierRefunds[$item->id] ?? 0),
-        ])->all();
     }
 }
